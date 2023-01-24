@@ -6,7 +6,6 @@ function generateRandomString() {
   }
   return randomStr;
 }
-console.log(generateRandomString());
 
 const express = require("express");
 const app = express();
@@ -30,8 +29,17 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
+  const shortURL = generateRandomString();
+  urlDatabase[shortURL] = req.body.longURL;
+  console.log(urlDatabase);
   console.log(req.body); // Log the POST request body to the console
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  res.redirect("/urls/" + shortURL); // 
+});
+
+app.get("/u/:id", (req, res) => {
+  const id = req.params.id;
+  const longURL = urlDatabase[id];
+  res.redirect(longURL);
 });
 
 app.get("/urls/:id", (req, res) => {
