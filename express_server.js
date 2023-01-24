@@ -55,6 +55,25 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls");
 });
 
+
+app.post("/urls/:id", (req, res) => {
+  const id = req.params.id;
+  //need to update the existing short URL with a long URL
+  console.log("test", id, req.body);
+  res.redirect("/urls");
+});
+
+
+
+app.post("/urls/:id/delete", (req, res) => {
+  const id = req.params.id;
+  delete urlDatabase[id];
+  res.redirect("/urls");
+});
+
+
+
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
