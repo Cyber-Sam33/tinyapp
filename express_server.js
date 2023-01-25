@@ -55,6 +55,12 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls");
 });
 
+app.post("/login", (req, res) => {
+  const username = req.body["username"];
+  console.log(req.body);
+  res.cookie('username', username);
+  res.redirect("/urls");
+});
 
 app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
@@ -63,15 +69,11 @@ app.post("/urls/:id", (req, res) => {
   res.redirect("/urls");
 });
 
-
-
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;
   delete urlDatabase[id];
   res.redirect("/urls");
 });
-
-
 
 
 app.get("/", (req, res) => {
