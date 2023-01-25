@@ -70,10 +70,13 @@ app.post("/login", (req, res) => {
   const username = req.body["username"];
   console.log(req.body);
   res.cookie('username', username);
-  res.redirect("/urls");
-
+  return res.redirect("/urls");
 });
 
+app.post("/logout", (req, res) => {
+  res.clearCookie('username', req.body["username"]);
+  return res.redirect("/urls");
+});
 
 app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
