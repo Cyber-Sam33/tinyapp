@@ -8,7 +8,9 @@ function generateRandomString() {
 }
 
 const express = require("express");
+const cookieParser = require('cookie-parser');
 const app = express();
+app.use(cookieParser());
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
@@ -20,12 +22,18 @@ const urlDatabase = {
 };
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = {
+    username: req.cookies["username"],
+    urls: urlDatabase
+  };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = {
+    username: req.cookies["username"],
+  };
+  res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
@@ -45,7 +53,10 @@ app.get("/u/:id", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
   const longURL = urlDatabase[id];
-  const templateVars = { id, longURL };
+  const templateVars = {
+    username: req.cookies["username"],
+    id, longURL
+  };
   res.render("urls_show", templateVars);
 });
 
@@ -60,7 +71,9 @@ app.post("/login", (req, res) => {
   console.log(req.body);
   res.cookie('username', username);
   res.redirect("/urls");
+
 });
+
 
 app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
