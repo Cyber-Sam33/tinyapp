@@ -16,31 +16,30 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
+        <a href="/register" class="nav-item nav-link">Register</a>
       </div>
     </div>
-    <% if (username) { %>
-    <p><%= username %></p>
+    <% if (user) { %>
+    <p><%= user.email %></p>
     <form class="form-inline" action="/logout" method="POST">
       <button type="submit" class="btn btn-primary">Logout</button>
     </form>
-    <%} %>
-  </nav>
 
-  <% if (username) { %>
-  <p><%= username %></p>
-  <%} else { %>
-  <form class="form-inline" action="/login" method="POST">
-    <div class="form-group mb-2">
-      <label for="username">Enter a username:</label>
-      <input
-        class="form-control"
-        type="text"
-        name="username"
-        placeholder="Enter a username"
-        style="width: 300px; margin: 1em"
-      />
-      <button type="submit" class="btn btn-primary">Submit</button>
+    <%} else { %>
+    <div>
+      <form class="form-inline" action="/login" method="POST">
+        <label for="username">Enter a username:</label>
+        <input
+          class="form-control"
+          type="text"
+          name="username"
+          placeholder="Enter a username"
+          style="width: 100px; margin: 1em"
+        />
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+      <!-- <<a href="/login" class="btn btn-primary">Login</a> -->
     </div>
-  </form>
-  <% } %>
+    <% } %>
+  </nav>
 </header>
