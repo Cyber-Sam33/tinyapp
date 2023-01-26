@@ -8,8 +8,10 @@ function generateRandomString() {
 }
 
 function getUserByEmail(email) {
+  console.log("email ", email);
   for (let id in users) {
     if (email === users[id].email) {
+      console.log("email found ", users[id]);
       return users[id];
     }
   }
@@ -37,12 +39,18 @@ const bcrypt = require("bcryptjs");
 // const hashedPassword = bcrypt.hashSync(password, 10);
 
 const express = require("express");
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session'); // replaced cookie parser
 const app = express();
 app.set("view engine", "ejs");
 const PORT = 8080; // default port 8080
 
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['test'],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 app.use(express.urlencoded({ extended: true }));
 
 const urlDatabase = {
@@ -60,18 +68,18 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur",
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10)
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: bcrypt.hashSync("dishwasher-funk", 10)
   },
 };
 
 //created user const variable and replaced logic in /register at end of GET
 app.get("/register", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session["user_id"]]; //*
   if (user) {
     return res.redirect("/urls");
   }
@@ -88,7 +96,9 @@ app.post("/register", (req, res) => {
   } else if (getUserByEmail(req.body.email)) {
     res.status(400).send('Email already exists.');
   } else {
+
     const id = generateRandomString();
+    // console.log("Request response, ", res.cookie('user_id', id));
     const email = req.body.email;
     const password = req.body.password;
     const hashedPassword = bcrypt.hashSync(password, 10);
@@ -99,28 +109,30 @@ app.post("/register", (req, res) => {
       password: hashedPassword
     };
     users[id] = user;
-    res.cookie('user_id', id);
+
+    req.session.user_id = id; //cookie set using session
   }
   res.redirect("/urls/");
 });
 
 app.get("/urls", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  console.log(" line 117 user ID: ", req.session["user_id"]);
+  const user = users[req.session["user_id"]]; //*
   if (!user) {
-    return res.send("Error, user not found");
+    res.redirect("/login"); //redirect added, error replaced
   }
 
-  const urlUser = urlsForUser(req.cookies["user_id"]);
+  const urlUser = urlsForUser(req.session["user_id"]);//*
 
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]], //*
     urls: urlUser
   };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session["user_id"]]; //*
   if (!user) {
     return res.redirect("/login");
   }
@@ -132,15 +144,15 @@ app.get("/urls/new", (req, res) => {
 
 
 app.post("/urls", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session["user_id"]]; //*
   if (!user) {
     return res.send("<p>Only for logged-in users</p>");
   }
 
   const shortURL = generateRandomString();
 
-  urlDatabase[shortURL] = { longURL: req.body.longURL, userID: req.cookies["user_id"] };
-  console.log(urlDatabase);
+  urlDatabase[shortURL] = { longURL: req.body.longURL, userID: req.session["user_id"] }; //*
+  // console.log(urlDatabase);
   console.log("long URL", req.body.longURL); // Log the POST request body to the console
   res.redirect("/urls/" + shortURL); // 
 });
@@ -156,12 +168,12 @@ app.get("/u/:id", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session["user_id"]]; //*
   if (!user) {
     return res.send("Error, user not found");
   }
 
-  if (req.cookies["user_id"] !== urlDatabase[req.params.id].userID) {
+  if (req.session["user_id"] !== urlDatabase[req.params.id].userID) { //*
     return res.send("Error, not your URL");
   }
 
@@ -169,7 +181,7 @@ app.get("/urls/:id", (req, res) => {
 
   const longURL = urlDatabase[id].longURL;
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]], //*
     id, longURL
   };
   res.render("urls_show", templateVars);
@@ -177,7 +189,7 @@ app.get("/urls/:id", (req, res) => {
 
 //create a get login with endpoint new login form template
 app.get("/login", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session["user_id"]]; // *
   if (user) {
     return res.redirect("/urls");
   }
@@ -194,23 +206,26 @@ app.post("/login", (req, res) => {
     return res.status(403).send("Email not found");
   }
 
-  //hashed passwords compared
+  console.log("Password ", user.password, password);
+  console.log(bcrypt.hashSync(password, 10));
+
+  //hashed passwords compared against original
   if (!bcrypt.compareSync(password, user.password)) {
     return res.status(403).send("Passwords do not match");
   }
 
-  res.cookie('user_id', user.id);
+  req.session.user_id = user.id; ///CHANGE//// 
   return res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
   return res.redirect("/login");
 });
 
 app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session["user_id"]]; // *
   if (!user) {
     return res.send("Error, user not found");
   }
@@ -219,7 +234,7 @@ app.post("/urls/:id", (req, res) => {
     return res.send("The short URL doesn't exist");
   }
 
-  if (req.cookies["user_id"] !== urlDatabase[req.params.id].userID) {
+  if (req.session["user_id"] !== urlDatabase[req.params.id].userID) { // *
     return res.send("Error, not your URL");
   }
 
@@ -230,7 +245,7 @@ app.post("/urls/:id", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;
 
-  const user = users[req.cookies["user_id"]];
+  const user = users[req.session["user_id"]]; // *
   if (!user) {
     return res.send("Error, user not found");
   }
@@ -239,7 +254,7 @@ app.post("/urls/:id/delete", (req, res) => {
     return res.send("The short URL doesn't exist");
   }
 
-  if (req.cookies["user_id"] !== urlDatabase[req.params.id].userID) {
+  if (req.session["user_id"] !== urlDatabase[req.params.id].userID) { // *
     return res.send("Error, not your URL");
   }
 
