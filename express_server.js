@@ -16,6 +16,25 @@ function getUserByEmail(email) {
   return null;
 }
 
+function urlsForUser(id) {
+  //make an empty object 
+  let userObj = {};
+  //loop through database
+  for (url in urlDatabase) {
+    //test the database userid(key) against the userID(function parameter)
+    if (id === urlDatabase[url].userID) {
+      userObj[url] = urlDatabase[url];
+      //if found, assign to empty object
+    }
+  }
+  //return out of FOR loop
+  return userObj;
+}
+
+//bcrypt to encrypt and has passwords
+const bcrypt = require("bcryptjs");
+// const password = "purple-monkey-dinosaur"; // found in the req.body object
+// const hashedPassword = bcrypt.hashSync(password, 10);
 
 const express = require("express");
 const cookieParser = require('cookie-parser');
@@ -59,10 +78,8 @@ app.get("/register", (req, res) => {
   const templateVars = {
     user: user,
   };
-
   res.render("urls_register", templateVars);
 });
-
 
 app.post("/register", (req, res) => {
 
@@ -74,10 +91,12 @@ app.post("/register", (req, res) => {
     const id = generateRandomString();
     const email = req.body.email;
     const password = req.body.password;
+    const hashedPassword = bcrypt.hashSync(password, 10);
+
     const user = {
       id: id,
       email: email,
-      password: password
+      password: hashedPassword
     };
     users[id] = user;
     res.cookie('user_id', id);
@@ -85,23 +104,6 @@ app.post("/register", (req, res) => {
   res.redirect("/urls/");
 });
 
-
-function urlsForUser(id) {
-  //make an empty object 
-  let userObj = {};
-  //loop through database
-  for (url in urlDatabase) {
-    //test the database userid(key) against the userID(function parameter)
-    if (id === urlDatabase[url].userID) {
-      userObj[url] = urlDatabase[url];
-      //if found, assign to empty object
-    }
-  }
-  //return out of FOR loop
-  return userObj;
-}
-
-// urls[id].longurl
 app.get("/urls", (req, res) => {
   const user = users[req.cookies["user_id"]];
   if (!user) {
@@ -145,7 +147,7 @@ app.post("/urls", (req, res) => {
 
 app.get("/u/:id", (req, res) => {
   const id = req.params.id;
-  //changed to .longURL
+
   const longURL = urlDatabase[id].longURL;
   if (!longURL) {
     return res.send("<p>id does not exist</p>");
@@ -164,7 +166,7 @@ app.get("/urls/:id", (req, res) => {
   }
 
   const id = req.params.id;
-  //changed to .LongURL
+
   const longURL = urlDatabase[id].longURL;
   const templateVars = {
     user: users[req.cookies["user_id"]],
@@ -192,7 +194,8 @@ app.post("/login", (req, res) => {
     return res.status(403).send("Email not found");
   }
 
-  if (user.password !== password) {
+  //hashed passwords compared
+  if (!bcrypt.compareSync(password, user.password)) {
     return res.status(403).send("Passwords do not match");
   }
 
@@ -220,9 +223,7 @@ app.post("/urls/:id", (req, res) => {
     return res.send("Error, not your URL");
   }
 
-
   urlDatabase[id].longURL = req.body.longURL;
-
   res.redirect("/urls");
 });
 
