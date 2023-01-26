@@ -44,10 +44,16 @@ const users = {
   },
 };
 
+//created user const variable and replaced logic in /register at end of GET
 app.get("/register", (req, res) => {
+  const user = users[req.cookies["user_id"]];
+  if (user) {
+    return res.redirect("/urls");
+  }
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: user,
   };
+
 
   res.render("urls_register", templateVars);
 });
@@ -86,14 +92,22 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
+  const user = users[req.cookies["user_id"]];
+  if (!user) {
+    return res.redirect("/login");
+  }
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: user,
   };
-  console.log(req.body);
   res.render("urls_new", templateVars);
 });
 
 app.post("/urls", (req, res) => {
+  const user = users[req.cookies["user_id"]];
+  if (!user) {
+    return res.send("<p>Only for logged-in users</p>");
+  }
+
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
   console.log(urlDatabase);
@@ -101,11 +115,12 @@ app.post("/urls", (req, res) => {
   res.redirect("/urls/" + shortURL); // 
 });
 
-
-
 app.get("/u/:id", (req, res) => {
   const id = req.params.id;
   const longURL = urlDatabase[id];
+  if (!longURL) {
+    return res.send("<p>id does not exist</p>");
+  }
   res.redirect(longURL);
 });
 
@@ -122,6 +137,9 @@ app.get("/urls/:id", (req, res) => {
 //create a get login with enpoint new login form template
 app.get("/login", (req, res) => {
   const user = users[req.cookies["user_id"]];
+  if (user) {
+    return res.redirect("/urls");
+  }
   const templateVars = { user };
   res.render("urls_loginForm", templateVars);
 });
@@ -132,13 +150,6 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls");
 });
 
-
-
-
-
-
-// Instruction
-// Update the POST /login endpoint to look up the email address (submitted via the login form) in the user object.
 
 app.post("/login", (req, res) => {
 
@@ -156,7 +167,6 @@ app.post("/login", (req, res) => {
   res.cookie('user_id', user.id);
   return res.redirect("/urls");
 });
-
 
 
 app.post("/logout", (req, res) => {
@@ -201,29 +211,3 @@ app.get("/set", (req, res) => {
 app.get("/fetch", (req, res) => {
   res.send(`a = ${a}`);
 });
-
-
-
-
-
-
-
-
-// 1. Lookup the specific user object in the users object using the user_id cookie value
-// app.post("/register", (req, res) => {
-//   console.log('---Loop through database');
-//   for (let id in users) {
-//     console.log('id: ', id);
-//     console.log('user =', users[id]);
-//     // 2. Pass the entire user object to your templates via templateVars.
-//     const templateVars = user[id];
-//     if (req.body.email === users[id].email)
-//       console.log("found matching email");
-//     if (req.body.password === users[id].password) {
-//       console.log('email and password has matched');
-//     }
-//   }
-//   console.log('---end loop');
-//   res.send('Login Successful :) ');
-//   // 3. Update the _header partial to show the email property from the user object instead of the username.
-// });
