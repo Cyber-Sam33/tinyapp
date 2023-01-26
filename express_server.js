@@ -22,7 +22,7 @@ const app = express();
 app.set("view engine", "ejs");
 const PORT = 8080; // default port 8080
 
-// req -----> Middleware --------> route
+
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
@@ -52,18 +52,8 @@ app.get("/register", (req, res) => {
   res.render("urls_register", templateVars);
 });
 
-// To generate a random user ID, use the same function you use to generate random IDs for URLs.
-// After adding the user, set a user_id cookie containing the user's newly generated ID.
-// Redirect the user to the /urls page.
-// Test that the users object is properly being appended to. You can insert a console.log or debugger 
-// prior to the redirect logic to inspect what data the object contains.
 
 app.post("/register", (req, res) => {
-
-
-  //-----------------------------------------
-  // console.log('id: ', id);
-  // console.log('user =', users[id]);
 
   if (req.body.email === "" || req.body.password === "") {
     res.status(400).send("You need to enter a valid email or password");
@@ -82,14 +72,13 @@ app.post("/register", (req, res) => {
     res.cookie('user_id', id);
   }
 
-  //   console.log('---end loop');
-  // console.log("user object at end of loop", users)
-  res.redirect("/urls/"); // 
+
+  res.redirect("/urls/");
 });
 
 app.get("/urls", (req, res) => {
   const templateVars = {
-    //username to user + 
+
     user: users[req.cookies["user_id"]],
     urls: urlDatabase
   };
@@ -130,27 +119,53 @@ app.get("/urls/:id", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+//create a get login with enpoint new login form template
+app.get("/login", (req, res) => {
+  const user = users[req.cookies["user_id"]];
+  const templateVars = { user };
+  res.render("urls_loginForm", templateVars);
+});
+
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;
   delete urlDatabase[id];
   res.redirect("/urls");
 });
 
+
+
+
+
+
+// Instruction
+// Update the POST /login endpoint to look up the email address (submitted via the login form) in the user object.
+
 app.post("/login", (req, res) => {
-  const username = req.body["username"];
-  console.log(req.body);
-  res.cookie('username', username);
+
+  const email = req.body.email;
+  const password = req.body.password;
+  const user = getUserByEmail(email);
+  if (!user) {
+    return res.status(403).send("Email not found");
+  }
+
+  if (user.password !== password) {
+    return res.status(403).send("Passwords do not match");
+  }
+
+  res.cookie('user_id', user.id);
   return res.redirect("/urls");
 });
 
+
+
 app.post("/logout", (req, res) => {
   res.clearCookie('user_id');
-  return res.redirect("/urls");
+  return res.redirect("/login");
 });
 
 app.post("/urls/:id", (req, res) => {
   const id = req.params.id;
-  //need to update the existing short URL with a long URL
   console.log("test", id, req.body);
   res.redirect("/urls");
 });
